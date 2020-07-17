@@ -19,8 +19,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	. "github.com/Monibuca/engine"
-	"github.com/Monibuca/engine/util"
+	. "github.com/Monibuca/engine/v2"
+	"github.com/Monibuca/engine/v2/util"
 	"github.com/Monibuca/monica/dashboard"
 )
 
@@ -144,7 +144,7 @@ func importInstance(w http.ResponseWriter, r *http.Request) {
 func readInstances() error {
 	if homeDir, err := Home(); err == nil {
 		instancesDir = path.Join(homeDir, ".monibuca")
-		if err = os.MkdirAll(instancesDir, os.FileMode(0666)); err == nil {
+		if err = os.MkdirAll(instancesDir, os.FileMode(0777)); err == nil {
 			if f, err := os.Open(instancesDir); err != nil {
 				return err
 			} else if cs, err := f.Readdir(0); err != nil {

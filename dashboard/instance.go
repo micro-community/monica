@@ -6,9 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strings"
 
-	"github.com/Monibuca/engine/util"
+	"github.com/Monibuca/engine/v2/util"
 )
 
 type InstanceDesc struct {
@@ -28,7 +27,7 @@ func (p *InstanceDesc) CreateDir(sse *util.SSE, clearDir bool) (err error) {
 	if clearDir {
 		err = os.RemoveAll(p.Path)
 	}
-	if err = os.MkdirAll(p.Path, 0666); err != nil {
+	if err = os.MkdirAll(p.Path, 0777); err != nil {
 		return
 	}
 	sse.WriteEvent("step", []byte("2:目录创建成功！"))
@@ -38,7 +37,7 @@ func (p *InstanceDesc) CreateDir(sse *util.SSE, clearDir bool) (err error) {
 	var build bytes.Buffer
 	build.WriteString(`package main
 import(
-"github.com/Monibuca/engine"`)
+. "github.com/Monibuca/engine/v2"`)
 	for _, plugin := range p.Plugins {
 		build.WriteString("\n_ \"")
 		build.WriteString(plugin)
@@ -47,7 +46,7 @@ import(
 	build.WriteString("\n)\n")
 	build.WriteString(`
 func main(){
-	engine.Run("config.toml")
+	Run("config.toml")
 	select{}
 }
 `)
@@ -63,9 +62,7 @@ func main(){
 		return
 	}
 	sse.WriteEvent("step", []byte("5:go build 成功！"))
-	binFile := strings.TrimSuffix(p.Path, "/")
-	_, binFile = path.Split(binFile)
-	if err = p.CreateRestartFile(binFile); err != nil {
+	if err = p.CreateRestartFile(p.Name); err != nil {
 		return
 	}
 	return sse.WriteExec(p.RestartCmd())

@@ -20,12 +20,7 @@
                                 :key="name"
                                 style="width:200px;margin:5px"
                             >
-                                <Poptip
-                                    :content="item.Description"
-                                    slot="extra"
-                                    width="200"
-                                    word-wrap
-                                >
+                                <Poptip :content="item.Desc" slot="extra" width="200" word-wrap>
                                     <Icon
                                         size="18"
                                         type="ios-help-circle-outline"
@@ -43,14 +38,27 @@
                             </Card>
                         </div>
                         <div v-else>
-                            <h3>实例名称：</h3>
-                            <i-input
-                                v-model="instanceName"
-                                :placeholder="createPath.split('/').pop()"
-                            ></i-input>
-                            <h4>安装路径：</h4>
-                            <div>
+                            <div class="oneline">
+                                <h4>实例名称：</h4>
+                                <i-input
+                                    style="width:300px"
+                                    v-model="instanceName"
+                                    :placeholder="createPath.split('/').pop()"
+                                ></i-input>
+                            </div>
+                            <div class="oneline">
+                                <h4>安装路径：</h4>
                                 <pre>{{createPath}}</pre>
+                            </div>
+                            <div class="oneline">
+                                <h4>是否启用房间等待：</h4>
+                                <Poptip
+                                    trigger="hover"
+                                    content="如果启用，则当有订阅某个没有发布者的房间时，会创建一个房间进入等待状态。否则就会订阅失败。"
+                                >
+                                    <Icon type="ios-help-circle-outline" style="cursor:pointer" />
+                                </Poptip>
+                                <i-switch v-model="enableWaitRoom"></i-switch>
                             </div>
                             <h4>启用的插件：</h4>
                             <div>
@@ -102,8 +110,11 @@
                 <TabPane label="插件市场">
                     <i-input search placeholder="find plugins in market" @on-search="searchPlugin"></i-input>
                     <List border>
-                        <ListItem v-for="item in searchPluginResult" :key="item">
-                            <ListItemMeta :title="item.Name" :description="item.Desc"></ListItemMeta>
+                        <ListItem v-for="(item,key) in searchPluginResult" :key="key">
+                            <ListItemMeta
+                                :title="(item.UI?'📈':'🧩')+item.Name"
+                                :description="item.Desc"
+                            ></ListItemMeta>
                             <template slot="action">
                                 <li>
                                     <a :href="'//'+item.Path" target="_blank">查看</a>
@@ -164,11 +175,10 @@ export default {
                 Name: name,
                 enabled: ["GateWay", "LogRotate", "Jessica"].includes(name),
                 Path:
-                    "github.com/Monibuca/" +
-                    this.$store.state.defaultPlugins[name][0] +
-                    "plugin",
+                    "github.com/Monibuca/plugin-" +
+                    this.$store.state.defaultPlugins[name][0]                     ,
                 Config: this.$store.state.defaultPlugins[name][1],
-                Description: this.$store.state.defaultPlugins[name][2]
+                Desc: this.$store.state.defaultPlugins[name][2]
             };
         }
         return {
@@ -181,7 +191,8 @@ export default {
             showAddPlugin: false,
             formPlugin: {},
             addPluginTab: 0,
-            searchPluginResult: []
+            searchPluginResult: [],
+            enableWaitRoom: true
         };
     },
     computed: {
@@ -192,13 +203,18 @@ export default {
                 .join("\n");
         },
         configStr() {
-            return Object.values(this.plugins)
-                .filter(x => x.enabled)
-                .map(
-                    x => `[${x.Name}]
+            return (
+                `[Monibuca]
+EnableWaitRoom = ${this.enableWaitRoom ? "true" : "false"}
+` +
+                Object.values(this.plugins)
+                    .filter(x => x.enabled)
+                    .map(
+                        x => `[${x.Name}]
 ${x.Config || ""}`
-                )
-                .join("\n");
+                    )
+                    .join("\n")
+            );
         },
         privateHost() {
             return (
@@ -226,7 +242,12 @@ ${x.Config || ""}`
             };
         },
         addPlugin() {
+            if (this.formPlugin.Name == "Monibuca") {
+                this.$Message.error("插件名称不可以为Monibuca");
+                return;
+            }
             this.plugins[this.formPlugin.Name] = this.formPlugin;
+            this.formPlugin.enabled = true;
             this.formPlugin = {};
             this.addPluginTab = 0;
         },
@@ -242,6 +263,14 @@ ${x.Config || ""}`
                     this.$Message.error("访问插件市场错误！");
                 });
         }
+    },
+    mounted() {
+        window.ajax
+            .getJSON("https://plugins.monibuca.com/recommend")
+            .then(x => (this.searchPluginResult = x))
+            .catch(() => {
+                this.$Message.error("访问插件市场错误！");
+            });
     }
 };
 </script>
@@ -258,5 +287,9 @@ pre {
 
 .ivu-tabs .ivu-tabs-tabpane {
     padding: 20px;
+}
+.oneline {
+    display: flex;
+    align-items: center;
 }
 </style>
